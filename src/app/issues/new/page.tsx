@@ -1,6 +1,6 @@
 'use client'
 
-import {Button, Callout, Text, TextField} from "@radix-ui/themes";
+import {Button, Callout, TextField} from "@radix-ui/themes";
 import SimpleMDE from "react-simplemde-editor";
 import "easymde/dist/easymde.min.css";
 import {Controller, useForm} from "react-hook-form";
@@ -11,6 +11,8 @@ import {ExclamationTriangleIcon} from "@radix-ui/react-icons";
 import {z} from 'zod'
 import {createIssueSchema} from "@/app/validationSchemas";
 import {zodResolver} from "@hookform/resolvers/zod";
+import ErrorMessage from "@/app/components/ErrorMessage";
+import Spinner from "@/app/components/Spinner";
 
 
 type IssueForm = z.infer<typeof createIssueSchema>
@@ -19,6 +21,7 @@ type IssueForm = z.infer<typeof createIssueSchema>
 const NewIssuePage = () => {
 
   const [error, setError] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const {
     register,
@@ -30,12 +33,14 @@ const NewIssuePage = () => {
   });
 
   const router = useRouter();
-  const submitFunction = handleSubmit(async (data) => {
+  const onSubmit = handleSubmit(async (data) => {
     try {
+      setIsSubmitting(true)
       await axios.post("/api/issues", data)
       router.push("/issues")
     }
     catch (error) {
+      setIsSubmitting(false)
       setError('An unexpected error occurred!')
       console.log(error)
     }
@@ -55,17 +60,19 @@ const NewIssuePage = () => {
           </Callout.Root>
         )
       }
-      <form className="space-y-3  flex-col"
-            onSubmit={submitFunction}
+      <form className="space-y-4  flex-col"
+            onSubmit={onSubmit}
       >
-        <TextField.Root placeholder="Title" {...register('title')}/>
-        {errors.title && <Text as="p" color="red">{errors.title.message}</Text>}
+        <TextField.Root placeholder="Title" {...register('title')} className="text-lg"/>
+        <ErrorMessage>{errors.title?.message}</ErrorMessage>
+
         <Controller render={({field}) => <SimpleMDE placeholder="Description" {...field} />}
                     control={control}
                     name="description"
         />
-        {errors.description && <Text as="p" color="red">{errors.description.message}</Text>}
-        <Button>Create Issue</Button>
+
+        <ErrorMessage>{errors.description?.message}</ErrorMessage>
+        <Button disabled={isSubmitting}>Create Issue {isSubmitting && <Spinner/>}</Button>
       </form>
     </div>
   )
